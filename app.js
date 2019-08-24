@@ -2,10 +2,10 @@ const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
 
-const config = require('config.json');
+const config = require('./config.json');
 const mongodbConnectionString = config['mongodb']['connection_string'];
 
-const storageRoutes = require('.api/routes/storage');
+const storageRoutes = require('./api/routes/storageRoutes');
 
 mongoose.connect(
     mongodbConnectionString,
