@@ -1,3 +1,9 @@
+/*
+TODO:
+
+1. Rewrite all error handling with this: https://medium.com/front-end-weekly/error-handling-in-node-javascript-suck-unless-you-know-this-2018-aa0a14cfdd9d
+*/
+
 const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
@@ -12,7 +18,7 @@ mongoose.connect(
     { useNewUrlParser: true }
 );
 
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
 //First non-middleware use()
