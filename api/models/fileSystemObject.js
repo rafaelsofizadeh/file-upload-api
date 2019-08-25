@@ -5,7 +5,7 @@ const fileOptional = () => { return this.type === 'file' };
 const directoryOptional = () => { return this.type === 'directory' };
 
 //https://stackoverflow.com/a/40714371
-const fileSchema = mongoose.Schema({
+const fileSystemObjectSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
     type: {
         type: String,
@@ -40,4 +40,4 @@ const fileSchema = mongoose.Schema({
     }
 });
 
-module.exports = mongoose.model('File', fileSchema);
+module.exports = mongoose.model('FileSystemObject', fileSystemObjectSchema);

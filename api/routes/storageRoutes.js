@@ -6,6 +6,7 @@ TODO:
     1.2. [DONE] Save each uploaded file's entry in MongoDB
         1.2.1. [DONE] On new folder creation, generate a new schema
         1.2.2. [DONE] Create a file model
+        1.2.3. Initialize a schema for each folder
     1.3. [DONE] File naming with MongoDB's _id given
         1.3.1. [DONE] Pass _id to multer.upload.single()
     1.4. Size, extension control
@@ -16,14 +17,15 @@ TODO:
 const express = require('express');
 const mongoose = require('mongoose');
 const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 //Config constants
 const config = require('../../config.json');
 const delimiter = config['file_system']['file_name_delimiter'];
 
 //Mongoose models imported
-const Folder = require('../models/folder');
-const File = require('../models/file');
+const FileSystemObject = require('../models/fileSystemObject');
 
 //Main services
 const router = express.Router();
@@ -71,14 +73,14 @@ const upload = multer({
 
 //Paths
 
-////INFO
+////INFO ABOUT FILES
 router.get('/',
     (request, response, next) => {
 
     }
 );
 
-////UPLOAD
+////UPLOAD FILE
 const mongooseObjectId = (request, response, next) => {
     const objectId = mongoose.Types.ObjectId();
     //https://stackoverflow.com/a/38355597
@@ -91,11 +93,10 @@ const mongooseObjectId = (request, response, next) => {
 const mongooseSaveObject = (request, response, next) => {
     const file = request.file;
     const locals = request.app.locals;
+    const fileName = locals.fileName;
 
-    const objectId = locals.objectId;
-    const fileName = request.app.locals.fileName;
-
-    const uploadedFile = new File({
+    const uploadedEntry = new FileSystemObject({
+        type: 'file',
         _id: locals.objectId,
         name: fileName,
         mimetype: file.mimetype,
@@ -104,17 +105,17 @@ const mongooseSaveObject = (request, response, next) => {
         path: file.path
     });
 
-    uploadedFile
+    uploadedEntry
         .save()
         .then((result) => {
             response
                 .status(201)
                 .json({
                     message: 'File uploaded successfully',
-                    uploadedFile: {
+                    uploadedEntry: {
                         //https://bit.ly/2KMV2VQ
                         //All needed info is stored in _doc property, rest is irrelevant info
-                        ...Object.assign({}, uploadedFile._doc, { __v: undefined })
+                        ...Object.assign({}, uploadedEntry._doc, { __v: undefined })
                     },
                     request: {
                         //TODO: add API response (connected with TODO2: Download files)
@@ -132,15 +133,56 @@ const mongooseSaveObject = (request, response, next) => {
 };
 
 //Decided to leave '/' on the same line, sacrificing uniformity of formatting for semantics 
-router.put('/',
+router.post('/',
     mongooseObjectId,
     upload.single('file'),
     mongooseSaveObject
 );
 
-////DELETE
-router.delete('/', (request, response, next) => {
+////DELETE FILE OR DIRECTORY
+const deleteObject = (objectPath) => {
+    if (fs.existsSync(objectPath)) {
+        const isDirectory = fs.lstatSync(objectPath).isDirectory();
 
+        if (isDirectory) {
+            fs.readdirSync(objectPath).forEach((entry) => {
+                const deletePath = path.join(objectPath, entry);
+                fs.unlinkSync(deletePath);
+            });
+            fs.rmdirSync(objectPath);
+        } else {
+            fs.unlinkSync(objectPath);
+        }
+    }
+}
+
+router.delete('/', (request, response, next) => {
+    const objectId = request.body['object_id'];
+
+    FileSystemObject
+        .findById(objectId)
+        .exec()
+        .then((result) => {
+            const objectInfo = result._doc;
+            //Path is relative to the starting script - app.js
+            const deletePath = objectInfo.path;
+
+            //TODO: error handling with http error codes
+            deleteObject(deletePath);
+
+            response
+                .status(200)
+                .json({
+                    message: "File system object deleted successfully"
+                });
+
+            next();
+        })
+        .catch((error) => {
+            response
+                .status(404)
+                .json(error);
+        });
 });
 
 module.exports = router;
