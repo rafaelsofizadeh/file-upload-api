@@ -14,7 +14,7 @@ const fileSystemObjectSchema = mongoose.Schema({
     },
     name: {
         type: String,
-        required: fileOptional.bind(this)
+        required: true
     },
     mimetype: {
         type: String,
@@ -24,20 +24,39 @@ const fileSystemObjectSchema = mongoose.Schema({
         type: String,
         required: fileOptional.bind(this)
     },
+    ancestors: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'File',
+        required: true
+    }],
     parent: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'File',
-        required: true
-    },
-    children: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'File',
-        required: directoryOptional.bind(this)
-    }],
-    path: {
-        type: String,
-        required: true
+        ref: 'File'
     }
 });
+
+fileSystemObjectSchema.methods.path = function () {
+    const model = this.model('FileSystemObject');
+
+    const ancestorNames = this.ancestors.map(async (ancestorId) => {
+        return await model
+            .findById(ancestorId)
+            .select('name')
+            .exec();
+    }) || [];
+
+    ancestorNames.push(this.name);
+    const fullPath = ancestorNames.join('/');
+    console.log(this.name);
+    console.log();
+    console.log();
+    console.log();
+    console.log(fullPath);
+    console.log();
+    console.log();
+    console.log();
+
+    return fullPath;
+};
 
 module.exports = mongoose.model('FileSystemObject', fileSystemObjectSchema);
