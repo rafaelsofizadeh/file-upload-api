@@ -14,8 +14,8 @@ TODO:
 */
 
 //Main libraries imported
-const express = require('express');
 const mongoose = require('mongoose');
+const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
@@ -32,28 +32,25 @@ const router = express.Router();
 ////Multer services
 const storage = multer.diskStorage({
     destination: (request, file, callback) => {
-        const ancesterFolder = 'storage';
-        const destination = request.body.destination;
+        const parentId = request.body.parentId;
 
-        //Find ObjectID of the folder to save to, save it in request
-        Folder
-            .findOne({ name: destination })
-            .select('_id')
+        FileSystemObject
+            .findById(parentId)
             .exec()
             .then((result) => {
-                request.app.locals.parentFolderId = result;
+                callback(null, result.path());
             })
             .catch((error) => {
                 console.log(error);
                 response
                     .status(500)
                     .json(error);
-            });
 
-        callback(null, ancesterFolder + '/' + destination + '/');
+                callback(error, null);
+            });
     },
     filename: (request, file, callback) => {
-        const fileName = request.app.locals.fileName = request.app.locals.objectId + delimiter + file.originalname;
+        const fileName = request.app.locals.objectId + delimiter + file.originalname;
         callback(null, fileName);
     }
 });
@@ -61,7 +58,7 @@ const storage = multer.diskStorage({
 const fileFilter = (request, file, callback) => {
     //TODO: Add some control
     callback(null, true);
-}
+};
 
 const upload = multer({
     storage,
@@ -70,15 +67,6 @@ const upload = multer({
         fileSize: 1024 * 1024 * 100 //100Mb
     }
 });
-
-//Paths
-
-////INFO ABOUT FILES
-router.get('/',
-    (request, response, next) => {
-
-    }
-);
 
 ////UPLOAD FILE
 const mongooseObjectId = (request, response, next) => {
@@ -90,20 +78,78 @@ const mongooseObjectId = (request, response, next) => {
     next();
 };
 
-const mongooseSaveObject = (request, response, next) => {
-    const file = request.file;
+const fsCreateDirectory = (request, response, next) => {
     const locals = request.app.locals;
-    const fileName = locals.fileName;
 
-    const uploadedEntry = new FileSystemObject({
-        type: 'file',
-        _id: locals.objectId,
-        name: fileName,
-        mimetype: file.mimetype,
-        size: file.size,
-        parent: locals.parentFolderId,
-        path: file.path
-    });
+    FileSystemObject
+        .findById(locals.objectId)
+        .exec()
+        .then((result) => {
+            const path = result.path();
+            fs.mkdir(path, { recursive: false }, (err) => {
+                if (err) {
+                    throw err;
+                }
+            });
+        });
+}
+
+const mongooseSaveObject = async (request, response, next) => {
+    const locals = request.app.locals;
+    const body = request.body;
+    const parentId = body.parentId;
+
+    console.log(locals);
+    console.log();
+    console.log();
+    console.log();
+    console.log(body);
+    console.log();
+    console.log();
+    console.log();
+
+    let parentProperties;
+    let ancestors;
+
+    if (parentId === null) {
+        ancestors = [];
+    } else {
+        parentProperties = await FileSystemObject
+            .findById(parentId)
+            .select('_id ancestors')
+            .exec();
+        console.log(parentProperties);
+        console.log();
+        console.log();
+        console.log();
+        ancestors = parentProperties.ancestors.push(parentProperties._id);
+    }
+
+    let uploadedEntry;
+    let file;
+
+    if (body.type === 'directory') {
+        uploadedEntry = new FileSystemObject({
+            _id: locals.objectId,
+            type: body.type,
+            parent: parentId,
+            name: body.name,
+            ancestors
+        });
+    } else if (body.type === 'file') {
+        //request.file is defined only after multer.one(), which fires only for 'files'
+        file = request.file;
+
+        uploadedEntry = new FileSystemObject({
+            _id: locals.objectId,
+            type: body.type,
+            parent: parentId,
+            name: file.filename,
+            mimetype: file.mimetype,
+            size: file.size,
+            ancestors
+        });
+    }
 
     uploadedEntry
         .save()
@@ -111,7 +157,7 @@ const mongooseSaveObject = (request, response, next) => {
             response
                 .status(201)
                 .json({
-                    message: 'File uploaded successfully',
+                    message: 'File system object uploaded/created successfully',
                     uploadedEntry: {
                         //https://bit.ly/2KMV2VQ
                         //All needed info is stored in _doc property, rest is irrelevant info
@@ -139,6 +185,12 @@ router.post('/',
     mongooseSaveObject
 );
 
+router.put('/',
+    mongooseObjectId,
+    mongooseSaveObject,
+    fsCreateDirectory
+);
+
 ////DELETE FILE OR DIRECTORY
 const deleteObject = (objectPath) => {
     if (fs.existsSync(objectPath)) {
@@ -154,7 +206,7 @@ const deleteObject = (objectPath) => {
             fs.unlinkSync(objectPath);
         }
     }
-}
+};
 
 router.delete('/', (request, response, next) => {
     const objectId = request.body['object_id'];
