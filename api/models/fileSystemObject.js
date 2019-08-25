@@ -35,26 +35,23 @@ const fileSystemObjectSchema = mongoose.Schema({
     }
 });
 
-fileSystemObjectSchema.methods.path = function () {
+//https://stackoverflow.com/a/43422983
+fileSystemObjectSchema.methods.path = async function () {
     const model = this.model('FileSystemObject');
 
-    const ancestorNames = this.ancestors.map(async (ancestorId) => {
-        return await model
-            .findById(ancestorId)
-            .select('name')
-            .exec();
-    }) || [];
+    const ancestorNames = await Promise.all(
+        this.ancestors.map(async (ancestorId) => {
+            return (
+                await model
+                    .findById(ancestorId)
+                    .select('name')
+                    .exec()
+            ).name;
+        })
+    ) || [];
 
     ancestorNames.push(this.name);
     const fullPath = ancestorNames.join('/');
-    console.log(this.name);
-    console.log();
-    console.log();
-    console.log();
-    console.log(fullPath);
-    console.log();
-    console.log();
-    console.log();
 
     return fullPath;
 };
