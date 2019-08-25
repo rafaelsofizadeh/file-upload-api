@@ -6,7 +6,7 @@ TODO:
     1.2. [DONE] Save each uploaded file's entry in MongoDB
         1.2.1. [DONE] On new folder creation, generate a new schema
         1.2.2. [DONE] Create a file model
-        1.2.3. Initialize a schema for each folder
+        1.2.3. [DONE] Initialize a schema for each folder
     1.3. [DONE] File naming with MongoDB's _id given
         1.3.1. [DONE] Pass _id to multer.upload.single()
     1.4. Size, extension control
@@ -32,13 +32,20 @@ const router = express.Router();
 ////Multer services
 const storage = multer.diskStorage({
     destination: (request, file, callback) => {
+        //Order of fields in post request is important
+        //Put files after text fields
+        //https://stackoverflow.com/a/43197040
         const parentId = request.body.parentId;
 
         FileSystemObject
             .findById(parentId)
             .exec()
             .then((result) => {
-                callback(null, result.path());
+                //https://stackoverflow.com/a/43422983
+                return result.path();
+            })
+            .then((filePath) => {
+                callback(null, filePath);
             })
             .catch((error) => {
                 console.log(error);
@@ -85,12 +92,20 @@ const fsCreateDirectory = (request, response, next) => {
         .findById(locals.objectId)
         .exec()
         .then((result) => {
-            const path = result.path();
-            fs.mkdir(path, { recursive: false }, (err) => {
+            //https://stackoverflow.com/a/43422983
+            return result.path();
+        })
+        .then((directoryPath) => {
+            console.log('path', directoryPath);
+            fs.mkdir(directoryPath, { recursive: false }, (err) => {
                 if (err) {
                     throw err;
                 }
             });
+        })
+        //TODO: add error handling
+        .catch((error) => {
+
         });
 }
 
@@ -99,55 +114,41 @@ const mongooseSaveObject = async (request, response, next) => {
     const body = request.body;
     const parentId = body.parentId;
 
-    console.log(locals);
-    console.log();
-    console.log();
-    console.log();
-    console.log(body);
-    console.log();
-    console.log();
-    console.log();
-
-    let parentProperties;
-    let ancestors;
-
-    if (parentId === null) {
-        ancestors = [];
-    } else {
+    let parentProperties = [];
+    if (parentId) {
         parentProperties = await FileSystemObject
             .findById(parentId)
-            .select('_id ancestors')
+            .select('ancestors')
             .exec();
-        console.log(parentProperties);
-        console.log();
-        console.log();
-        console.log();
-        ancestors = parentProperties.ancestors.push(parentProperties._id);
+
+        parentProperties.ancestors.push(parentId);
     }
+    const ancestors = parentProperties.ancestors;
 
     let uploadedEntry;
-    let file;
+    //Directories are submitted using PUT, files using POST
+    let type = request.method === 'POST' ? 'file' : 'directory';
 
-    if (body.type === 'directory') {
+    if (type === 'directory') {
         uploadedEntry = new FileSystemObject({
             _id: locals.objectId,
-            type: body.type,
             parent: parentId,
             name: body.name,
-            ancestors
+            ancestors,
+            type
         });
-    } else if (body.type === 'file') {
+    } else if (type === 'file') {
         //request.file is defined only after multer.one(), which fires only for 'files'
-        file = request.file;
+        const file = request.file;
 
         uploadedEntry = new FileSystemObject({
             _id: locals.objectId,
-            type: body.type,
             parent: parentId,
             name: file.filename,
             mimetype: file.mimetype,
             size: file.size,
-            ancestors
+            ancestors,
+            type
         });
     }
 
@@ -217,6 +218,7 @@ router.delete('/', (request, response, next) => {
         .then((result) => {
             const objectInfo = result._doc;
             //Path is relative to the starting script - app.js
+            //FIX THIS PART, .path -> .path()
             const deletePath = objectInfo.path;
 
             //TODO: error handling with http error codes
