@@ -1,8 +1,8 @@
 //Directory is a file, too
 const mongoose = require('mongoose');
 
-const fileOptional = () => { return this.type === 'file' };
-const directoryOptional = () => { return this.type === 'directory' };
+const fileOptional = function () { return this.type === 'file'; };
+const directoryOptional = function () { return this.type === 'directory'; };
 
 //https://stackoverflow.com/a/40714371
 const fileSystemObjectSchema = mongoose.Schema({
@@ -14,15 +14,15 @@ const fileSystemObjectSchema = mongoose.Schema({
     },
     name: {
         type: String,
-        required: fileOptional
+        required: fileOptional.bind(this)
     },
     mimetype: {
         type: String,
-        required: fileOptional
+        required: fileOptional.bind(this)
     },
     size: {
         type: String,
-        required: fileOptional
+        required: fileOptional.bind(this)
     },
     parent: {
         type: mongoose.Schema.Types.ObjectId,
@@ -32,7 +32,7 @@ const fileSystemObjectSchema = mongoose.Schema({
     children: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'File',
-        required: directoryOptional
+        required: directoryOptional.bind(this)
     }],
     path: {
         type: String,
