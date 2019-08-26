@@ -96,23 +96,31 @@ router.put('/',
 
 ////DELETE FILE OR DIRECTORY
 const deleteObjectPhysical = (objectPath) => {
+    //Path exists? If yes
     if (fs.existsSync(objectPath)) {
+        //Directory or file?
         const isDirectory = fs.lstatSync(objectPath).isDirectory();
 
+        //If directory
         if (isDirectory) {
+            //Go through the directory
             fs.readdirSync(objectPath).forEach((entry) => {
+                //Recursively add new entry to the old path
                 const deletePath = path.join(objectPath, entry);
-                fs.unlinkSync(deletePath);
+                //No matter directory or file, recursively delete the entry
+                //The function will check if it's a file or directory at the beginning of its recursive call
+                deleteObjectPhysical(deletePath);
             });
+            //Remove directory only after going through it (even if it's empty)
             fs.rmdirSync(objectPath);
         } else {
+            //If file, delete straight away, without recursion
             fs.unlinkSync(objectPath);
         }
     }
 };
 
 function deleteObject(objectId) {
-    console.log('objectId', objectId);
     FileSystemObject
         .findById(objectId)
         .select('children')
@@ -137,13 +145,11 @@ function deleteObject(objectId) {
 
 router.delete('/', (request, response, next) => {
     const objectId = request.body.objectId;
-    console.log('router.delete() objectId', objectId);
 
     FileSystemObject
         .findById(objectId)
         .exec()
         .then((result) => {
-            console.log('result', result);
             deleteObject(objectId);
 
             return result.path();
