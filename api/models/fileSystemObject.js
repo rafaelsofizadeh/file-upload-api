@@ -3,10 +3,15 @@ const mongoose = require('mongoose');
 
 const fileOptional = function () { return this.type === 'file'; };
 const directoryOptional = function () { return this.type === 'directory'; };
+const topLevel = function () { return this.parent === null; };
 
 //https://stackoverflow.com/a/40714371
 const fileSystemObjectSchema = mongoose.Schema({
     _id: mongoose.Schema.Types.ObjectId,
+    created: {
+        type: Date,
+        default: Date.now
+    },
     type: {
         type: String,
         enum: ['file', 'directory'],
@@ -33,7 +38,11 @@ const fileSystemObjectSchema = mongoose.Schema({
     children: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: 'File'
-    }]
+    }],
+    topLevel: {
+        type: Boolean,
+        default: topLevel
+    }
 });
 
 //https://stackoverflow.com/a/43422983
