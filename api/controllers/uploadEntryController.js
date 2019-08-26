@@ -1,8 +1,7 @@
 const mongoose = require('mongoose');
 const fs = require('fs');
 
-//Mongoose models imported
-const FileSystemObject = require('./models/fileSystemObject');
+const FileSystemObject = require('../models/fileSystemObject');
 
 module.exports = {
     //[PUT, POST] ObjectId generation for both directory & file upload
