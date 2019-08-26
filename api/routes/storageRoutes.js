@@ -9,13 +9,12 @@ TODO:
         1.2.3. [DONE] Initialize a schema for each folder
     1.3. [DONE] File naming with MongoDB's _id given
         1.3.1. [DONE] Pass _id to multer.upload.single()
-    1.4. Size, extension control
+    1.4. [DONE] Size, extension control
 
 */
 
 //Main libraries imported
 const middleware = require('../middleware');
-const mongoose = require('mongoose');
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
@@ -64,8 +63,14 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (request, file, callback) => {
-    //TODO: Add some control
-    callback(null, true);
+    const allowedFileTypes = config['file_system']['allowed_file_types'];
+    const fileType = path.extname(file.originalname);
+
+    if (allowedFileTypes.includes(fileType)) {
+        callback(null, true);
+    } else {
+        callback(null, false);
+    }
 };
 
 const upload = multer({
@@ -76,9 +81,7 @@ const upload = multer({
     }
 });
 
-////UPLOAD FILE
-
-//Decided to leave '/' on the same line, sacrificing uniformity of formatting for semantics 
+////UPLOAD FILE OR DIRECTORY
 router.post('/',
     middleware.mongooseObjectId,
     upload.single('file'),
@@ -92,7 +95,7 @@ router.put('/',
 );
 
 ////DELETE FILE OR DIRECTORY
-const deleteObject = (objectPath) => {
+const deleteObjectPhysical = (objectPath) => {
     if (fs.existsSync(objectPath)) {
         const isDirectory = fs.lstatSync(objectPath).isDirectory();
 
@@ -108,20 +111,46 @@ const deleteObject = (objectPath) => {
     }
 };
 
+function deleteObject(objectId) {
+    console.log('objectId', objectId);
+    FileSystemObject
+        .findById(objectId)
+        .select('children')
+        .exec()
+        .then((result) => {
+            if (result) {
+                //Save object's children, delete object, then delete the children recursively
+                const children = result.children;
+
+                FileSystemObject.findByIdAndDelete(objectId);
+                if (children) {
+                    children.forEach((childId) => {
+                        deleteObject(childId);
+                    });
+                }
+            }
+        })
+        .catch((error) => {
+            throw error;
+        });
+}
+
 router.delete('/', (request, response, next) => {
-    const objectId = request.body['object_id'];
+    const objectId = request.body.objectId;
+    console.log('router.delete() objectId', objectId);
 
     FileSystemObject
         .findById(objectId)
         .exec()
         .then((result) => {
-            const objectInfo = result._doc;
-            //Path is relative to the starting script - app.js
-            //FIX THIS PART, .path -> .path()
-            const deletePath = objectInfo.path;
+            console.log('result', result);
+            deleteObject(objectId);
 
+            return result.path();
+        })
+        .then((deletePath) => {
             //TODO: error handling with http error codes
-            deleteObject(deletePath);
+            deleteObjectPhysical(deletePath);
 
             response
                 .status(200)
