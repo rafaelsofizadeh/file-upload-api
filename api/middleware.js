@@ -55,7 +55,6 @@ module.exports = {
                 return FileSystemObject.findByIdAndUpdate(parentId, { $push: { 'children': objectId } });
             })
             .then((result) => {
-                console.log('update result', result);
                 response
                     .status(201)
                     .json({
@@ -93,7 +92,6 @@ module.exports = {
                 return result.path();
             })
             .then((directoryPath) => {
-                console.log('path', directoryPath);
                 fs.mkdir(directoryPath, { recursive: false }, (error) => {
                     if (error) {
                         throw error;
