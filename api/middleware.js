@@ -15,8 +15,8 @@ module.exports = {
         next();
     },
     //[PUT, POST] Saving file & directory schema in MongoDB
-    mongooseSaveObject: async (request, response, next) => {
-        //——————(1) Differentiating between directory & file, creating schemas
+    mongooseSaveObject: (request, response, next) => {
+        //Differentiating between directory & file, creating schemas
         const locals = request.app.locals;
         const body = request.body;
 
@@ -48,16 +48,14 @@ module.exports = {
             });
         }
 
-        //——————(2) Updating parent's children
-        FileSystemObject.findByIdAndUpdate(
-            parentId,
-            { $push: { children: objectId } }
-        );
-
-        //——————(3) Saving schemas
+        //Saving schemas
         uploadedEntry
             .save()
             .then((result) => {
+                return FileSystemObject.findByIdAndUpdate(parentId, { $push: { 'children': objectId } });
+            })
+            .then((result) => {
+                console.log('update result', result);
                 response
                     .status(201)
                     .json({
