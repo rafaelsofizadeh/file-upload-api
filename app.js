@@ -69,6 +69,8 @@ app.use((error, request, response, next) => {
                 message: error.message
             }
         });
+
+    return;
 });
 
 module.exports = app;

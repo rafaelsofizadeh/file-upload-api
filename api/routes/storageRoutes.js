@@ -97,15 +97,16 @@ const fsCreateDirectory = (request, response, next) => {
         })
         .then((directoryPath) => {
             console.log('path', directoryPath);
-            fs.mkdir(directoryPath, { recursive: false }, (err) => {
-                if (err) {
-                    throw err;
+            fs.mkdir(directoryPath, { recursive: false }, (error) => {
+                if (error) {
+                    throw error;
                 }
             });
         })
         //TODO: add error handling
         .catch((error) => {
-
+            console.log(error);
+            return;
         });
 }
 
@@ -113,17 +114,6 @@ const mongooseSaveObject = async (request, response, next) => {
     const locals = request.app.locals;
     const body = request.body;
     const parentId = body.parentId;
-
-    let parentProperties = [];
-    if (parentId) {
-        parentProperties = await FileSystemObject
-            .findById(parentId)
-            .select('ancestors')
-            .exec();
-
-        parentProperties.ancestors.push(parentId);
-    }
-    const ancestors = parentProperties.ancestors;
 
     let uploadedEntry;
     //Directories are submitted using PUT, files using POST
@@ -134,7 +124,6 @@ const mongooseSaveObject = async (request, response, next) => {
             _id: locals.objectId,
             parent: parentId,
             name: body.name,
-            ancestors,
             type
         });
     } else if (type === 'file') {
@@ -147,7 +136,6 @@ const mongooseSaveObject = async (request, response, next) => {
             name: file.filename,
             mimetype: file.mimetype,
             size: file.size,
-            ancestors,
             type
         });
     }
@@ -176,6 +164,8 @@ const mongooseSaveObject = async (request, response, next) => {
             response
                 .status(500)
                 .json(error);
+
+            return;
         });
 };
 
@@ -236,6 +226,8 @@ router.delete('/', (request, response, next) => {
             response
                 .status(404)
                 .json(error);
+
+            return;
         });
 });
 

@@ -24,11 +24,6 @@ const fileSystemObjectSchema = mongoose.Schema({
         type: String,
         required: fileOptional.bind(this)
     },
-    ancestors: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'File',
-        required: true
-    }],
     parent: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'File'
@@ -36,24 +31,27 @@ const fileSystemObjectSchema = mongoose.Schema({
 });
 
 //https://stackoverflow.com/a/43422983
+async function getAncestors(ancestors, objectId, model) {
+    const object = await model
+        .findById(objectId)
+        .select('_id parent name')
+        .exec();
+
+    ancestors.unshift(object);
+
+    if (object.parent) {
+        return getAncestors(ancestors, object.parent, model);
+    } else {
+        return ancestors;
+    }
+};
+
 fileSystemObjectSchema.methods.path = async function () {
     const model = this.model('FileSystemObject');
+    const ancestors = await getAncestors([], this._id, model);
+    const ancestorNames = ancestors.map(ancestor => ancestor.name);
 
-    const ancestorNames = await Promise.all(
-        this.ancestors.map(async (ancestorId) => {
-            return (
-                await model
-                    .findById(ancestorId)
-                    .select('name')
-                    .exec()
-            ).name;
-        })
-    ) || [];
-
-    ancestorNames.push(this.name);
-    const fullPath = ancestorNames.join('/');
-
-    return fullPath;
+    return ancestorNames.join('/');
 };
 
 module.exports = mongoose.model('FileSystemObject', fileSystemObjectSchema);
