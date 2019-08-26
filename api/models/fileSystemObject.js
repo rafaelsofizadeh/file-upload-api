@@ -26,8 +26,14 @@ const fileSystemObjectSchema = mongoose.Schema({
     },
     parent: {
         type: mongoose.Schema.Types.ObjectId,
+        ref: 'File',
+        default: null
+    },
+    //TODO: validation for file children (files can't have children, only directories)
+    children: [{
+        type: mongoose.Schema.Types.ObjectId,
         ref: 'File'
-    }
+    }]
 });
 
 //https://stackoverflow.com/a/43422983
