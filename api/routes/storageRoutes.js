@@ -14,6 +14,7 @@ TODO:
 */
 
 //Main libraries imported
+const middleware = require('../middleware');
 const mongoose = require('mongoose');
 const express = require('express');
 const multer = require('multer');
@@ -76,110 +77,18 @@ const upload = multer({
 });
 
 ////UPLOAD FILE
-const mongooseObjectId = (request, response, next) => {
-    const objectId = mongoose.Types.ObjectId();
-    //https://stackoverflow.com/a/38355597
-    //request.locals = {};
-    request.app.locals.objectId = objectId;
-
-    next();
-};
-
-const fsCreateDirectory = (request, response, next) => {
-    const locals = request.app.locals;
-
-    FileSystemObject
-        .findById(locals.objectId)
-        .exec()
-        .then((result) => {
-            //https://stackoverflow.com/a/43422983
-            return result.path();
-        })
-        .then((directoryPath) => {
-            console.log('path', directoryPath);
-            fs.mkdir(directoryPath, { recursive: false }, (error) => {
-                if (error) {
-                    throw error;
-                }
-            });
-        })
-        //TODO: add error handling
-        .catch((error) => {
-            console.log(error);
-            return;
-        });
-}
-
-const mongooseSaveObject = async (request, response, next) => {
-    const locals = request.app.locals;
-    const body = request.body;
-    const parentId = body.parentId;
-
-    let uploadedEntry;
-    //Directories are submitted using PUT, files using POST
-    let type = request.method === 'POST' ? 'file' : 'directory';
-
-    if (type === 'directory') {
-        uploadedEntry = new FileSystemObject({
-            _id: locals.objectId,
-            parent: parentId,
-            name: body.name,
-            type
-        });
-    } else if (type === 'file') {
-        //request.file is defined only after multer.one(), which fires only for 'files'
-        const file = request.file;
-
-        uploadedEntry = new FileSystemObject({
-            _id: locals.objectId,
-            parent: parentId,
-            name: file.filename,
-            mimetype: file.mimetype,
-            size: file.size,
-            type
-        });
-    }
-
-    uploadedEntry
-        .save()
-        .then((result) => {
-            response
-                .status(201)
-                .json({
-                    message: 'File system object uploaded/created successfully',
-                    uploadedEntry: {
-                        //https://bit.ly/2KMV2VQ
-                        //All needed info is stored in _doc property, rest is irrelevant info
-                        ...Object.assign({}, uploadedEntry._doc, { __v: undefined })
-                    },
-                    request: {
-                        //TODO: add API response (connected with TODO2: Download files)
-                    }
-                });
-
-            next();
-        })
-        .catch((error) => {
-            console.log(error);
-            response
-                .status(500)
-                .json(error);
-
-            return;
-        });
-};
 
 //Decided to leave '/' on the same line, sacrificing uniformity of formatting for semantics 
 router.post('/',
-    mongooseObjectId,
+    middleware.mongooseObjectId,
     upload.single('file'),
-    mongooseSaveObject
+    middleware.mongooseSaveObject
 );
 
 router.put('/',
-    mongooseObjectId,
-    mongooseSaveObject,
-    fsCreateDirectory
+    middleware.mongooseObjectId,
+    middleware.mongooseSaveObject,
+    middleware.fsCreateDirectory
 );
 
 ////DELETE FILE OR DIRECTORY
