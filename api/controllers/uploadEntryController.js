@@ -56,6 +56,8 @@ module.exports = {
                     .exec();
             })
             .then((result) => {
+                const entry = uploadedEntry._doc;
+
                 response
                     .status(201)
                     .json({
@@ -63,10 +65,14 @@ module.exports = {
                         uploadedEntry: {
                             //https://bit.ly/2KMV2VQ
                             //All needed info is stored in _doc property, rest is irrelevant info
-                            ...Object.assign({}, uploadedEntry._doc, { __v: undefined })
+                            ...Object.assign({}, entry, { __v: undefined })
                         },
                         request: {
-                            //TODO: add API response (connected with TODO2: Download files)
+                            method: 'GET',
+                            url: 'localhost:3000/storage',
+                            parameters: {
+                                objectId: entry._id
+                            }
                         }
                     });
 

@@ -27,7 +27,7 @@ mongoose
         }
     )
     .then((connection) => {
-        //return FileSystemObject.deleteMany({});
+        return FileSystemObject.deleteMany({});
     })
     .catch((error) => {
         console.log(error);
