@@ -1,9 +1,21 @@
+/*
+TODO:
+
+1. Replace the hierarchy with mongoose-mpath plugin
+2. Use .pre() hooks for deletion
+
+*/
+
 const express = require('express');
 const router = express.Router();
 
 const uploadEntryController = require('../controllers/uploadEntryController');
 const deleteEntryController = require('../controllers/deleteEntryController');
 const multerUploadFileController = require('../controllers/multerUploadFileController');
+const informationController = require('../controllers/informationController')
+
+//GET INFO
+router.get('/', informationController);
 
 //UPLOAD FILE
 router.post('/',
