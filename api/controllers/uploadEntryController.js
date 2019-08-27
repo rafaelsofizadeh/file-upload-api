@@ -51,7 +51,9 @@ module.exports = {
         uploadedEntry
             .save()
             .then((result) => {
-                return FileSystemObject.findByIdAndUpdate(parentId, { $push: { 'children': objectId } });
+                return FileSystemObject
+                    .findByIdAndUpdate(parentId, { $push: { children: objectId } })
+                    .exec();
             })
             .then((result) => {
                 response
