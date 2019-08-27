@@ -50,6 +50,8 @@ const autoPopulateChildren = function (next) {
     next();
 };
 
+//https://mongoosejs.com/docs/populate.html#populate-middleware
+//https://stackoverflow.com/a/33341301
 fileSystemObjectSchema
     .pre('findOne', autoPopulateChildren)
     .pre('find', autoPopulateChildren);
@@ -69,12 +71,6 @@ async function getAncestors(ancestors, objectId, model) {
         return ancestors;
     }
 };
-
-//https://mongoosejs.com/docs/populate.html#populate-middleware
-//https://stackoverflow.com/a/33341301
-/*fileSystemObjectSchema.pre('findOne', () => {
-    this.populate('children');
-});*/
 
 fileSystemObjectSchema.methods.path = async function () {
     const model = this.model('FileSystemObject');

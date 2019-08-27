@@ -98,6 +98,8 @@ module.exports = {
                         throw error;
                     }
                 });
+
+                next();
             })
             //TODO: add error handling
             .catch((error) => {
