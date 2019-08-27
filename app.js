@@ -11,12 +11,27 @@ const mongoose = require('mongoose');
 const config = require('./config.json');
 const mongodbConnectionString = config['mongodb']['connection_string'];
 
+const FileSystemObject = require('./api/models/fileSystemObject');
+
 const storageRoutes = require('./api/routes/storageRoutes');
 
-mongoose.connect(
-    mongodbConnectionString,
-    { useNewUrlParser: true }
-);
+//https://stackoverflow.com/a/44970539
+//Delete all saved data
+mongoose
+    .connect(
+        mongodbConnectionString,
+        {
+            useNewUrlParser: true,
+            useFindAndModify: true,
+            useCreateIndex: true
+        }
+    )
+    .then((connection) => {
+        //return FileSystemObject.deleteMany({});
+    })
+    .catch((error) => {
+        console.log(error);
+    });
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
