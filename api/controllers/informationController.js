@@ -36,16 +36,27 @@ const populateChildren = (object) => {
 }*/
 
 const getInformation = (request, response, next) => {
+    const body = request.body;
+    const objectId = body.objectId;
+
     FileSystemObject
-        .findById(request.body.objectId)
+        .findById(objectId)
         .populate('children')
         .exec()
         .then((result) => {
-            console.log('POPULATE RESULT', result);
+            response
+                .status(200)
+                .json(result);
+
+            next();
         })
         .catch((error) => {
-            console.log(error);
+            response
+                .status(404)
+                .json(error);
+
+            return;
         });
-}
+};
 
 module.exports = getInformation;
