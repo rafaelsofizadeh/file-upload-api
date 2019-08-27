@@ -13,7 +13,7 @@ const FileSystemObject = require('../models/fileSystemObject');
             console.log('POPULATE RESULT', result);
         })
         .catch((error) => {
-            console.log(error);
+            throw error;
         });
 }
 
@@ -54,6 +54,8 @@ const getInformation = (request, response, next) => {
             response
                 .status(404)
                 .json(error);
+
+            throw error;
 
             return;
         });

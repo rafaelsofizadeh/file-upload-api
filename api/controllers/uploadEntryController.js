@@ -109,8 +109,7 @@ module.exports = {
             })
             //TODO: add error handling
             .catch((error) => {
-                console.log(error);
-                return;
+                throw error;
             });
     }
 }

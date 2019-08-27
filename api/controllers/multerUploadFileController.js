@@ -24,10 +24,11 @@ const storage = multer.diskStorage({
                 callback(null, filePath);
             })
             .catch((error) => {
-                console.log(error);
                 response
                     .status(500)
                     .json(error);
+
+                throw error;
 
                 callback(error, null);
             });
