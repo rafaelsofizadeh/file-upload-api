@@ -31,19 +31,28 @@ const fileSystemObjectSchema = mongoose.Schema({
     },
     parent: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'File',
+        ref: 'FileSystemObject',
         default: null
     },
     //TODO: validation for file children (files can't have children, only directories)
     children: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'File'
+        ref: 'FileSystemObject'
     }],
     topLevel: {
         type: Boolean,
         default: topLevel
     }
 });
+
+const autoPopulateChildren = function (next) {
+    this.populate('children');
+    next();
+};
+
+fileSystemObjectSchema
+    .pre('findOne', autoPopulateChildren)
+    .pre('find', autoPopulateChildren);
 
 //https://stackoverflow.com/a/43422983
 async function getAncestors(ancestors, objectId, model) {
@@ -60,6 +69,12 @@ async function getAncestors(ancestors, objectId, model) {
         return ancestors;
     }
 };
+
+//https://mongoosejs.com/docs/populate.html#populate-middleware
+//https://stackoverflow.com/a/33341301
+/*fileSystemObjectSchema.pre('findOne', () => {
+    this.populate('children');
+});*/
 
 fileSystemObjectSchema.methods.path = async function () {
     const model = this.model('FileSystemObject');
