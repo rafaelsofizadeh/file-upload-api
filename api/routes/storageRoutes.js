@@ -12,10 +12,14 @@ const router = express.Router();
 const uploadEntryController = require('../controllers/uploadEntryController');
 const deleteEntryController = require('../controllers/deleteEntryController');
 const multerUploadFileController = require('../controllers/multerUploadFileController');
-const informationController = require('../controllers/informationController')
+const informationController = require('../controllers/informationController');
+const downloadController = require('../controllers/downloadController');
 
 //GET INFO
 router.get('/', informationController);
+
+//DOWNLOAD FILE
+router.get('/download', downloadController);
 
 //UPLOAD FILE
 router.post('/',
